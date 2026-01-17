@@ -7,12 +7,30 @@
     "default_popup": "hello.html",
     "default_icon": "hello_extensions.png"
   },
-  "permissions": ["activeTab", "scripting", "tabs", "clipboardRead"], 
+  "permissions": ["activeTab", "scripting", "tabs", "clipboardRead", "identity", "storage"],
+  "host_permissions": ["<all_urls>"],
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self'; connect-src 'self' https://driveactivity.googleapis.com https://drive.googleapis.com https://docs.googleapis.com https://www.googleapis.com;"
+  },
+  "background": {
+    "service_worker": "scripts/background.js"
+  },
   "content_scripts": [
     {
       "matches": ["<all_urls>"],
       "js": ["scripts/content.js"],
-      "run_at": "document_idle"
+      "run_at": "document_idle",
+      "all_frames": true,
+      "match_about_blank": true
     }
-  ]
+  ],
+  "oauth2": {
+    "client_id": "1049671897311-fgfbplse7k1cpjofh0hi66kqa4ass9qs.apps.googleusercontent.com",
+    "scopes": [
+      "https://www.googleapis.com/auth/userinfo.email",
+      "https://www.googleapis.com/auth/documents.readonly",
+      "https://www.googleapis.com/auth/drive.activity.readonly",
+      "https://www.googleapis.com/auth/drive.readonly"
+    ]
+  }
 }
