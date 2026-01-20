@@ -1,10 +1,23 @@
 class AppLoader {
     url = document.URL;
 
-    constructor() {
-        console.log("AppLoader complete in Context", this.url);
-        // this.getAuthToken();
+    logger;
 
+    constructor() {
+        this.logger = new EventLogger();
+        console.log("AppLoader complete in Context", this.url);
+    }
+
+    async getAuthToken() {
+        const response = await chrome.runtime.sendMessage({ action: "login" });
+        this.token = response.token;
+        this.userdata = response.data;
+        console.log("Received token from background:", response);
+    }
+}
+
+class EventLogger {
+    constructor() {
         window.addEventListener("keydown", this.logKeyDown, {capture: true});
         window.addEventListener("keyup", this.logKeyUp, {capture: true});
         window.addEventListener("pointerdown", this.logPointerDown);
@@ -19,31 +32,20 @@ class AppLoader {
                     console.log("Adding paste listener to iframe document");
                     frameDoc.addEventListener("paste", this.pasteHandler);
                 } 
-            } catch (e) {
-                
-            }
+            } catch (e) {}
         });
-        // const iframe = document.querySelector('.docs-texteventtarget-iframe');
-        // const iframeDoc = iframe?.contentDocument || iframe?.contentWindow?.document;
-        // if (iframeDoc) {
-        //     console.log("Adding paste listener to iframe document");
-        //     iframeDoc.addEventListener("paste", this.pasteHandler);
-        // }
-
     }
 
-    async getAuthToken() {
-        const response = await chrome.runtime.sendMessage({ action: "login" });
-        this.token = response.token;
-        this.userdata = response.data;
-        console.log("Received token from background:", response);
-    }
-
-
+    
     logKeyDown = (event) => {
         chrome.runtime.sendMessage({
             action: "keydown_detected",
             key: event.key,
+            keyCode: event.keyCode,
+            altKey: event.altKey,
+            ctrlKey: event.ctrlKey,
+            shiftKey: event.shiftKey,
+            metaKey: event.metaKey,
             sourceUrl: this.url,
             timestamp: new Date().toISOString(),
         });

@@ -4,13 +4,13 @@
   "description": "Base Level Extension",
   "version": "1.0",
   "action": {
-    "default_popup": "hello.html",
+    "default_popup": "scripts/hello.html",
     "default_icon": "hello_extensions.png"
   },
   "permissions": ["activeTab", "scripting", "tabs", "clipboardRead", "identity", "storage"],
   "host_permissions": ["<all_urls>"],
   "content_security_policy": {
-    "extension_pages": "script-src 'self'; object-src 'self'; connect-src 'self' https://driveactivity.googleapis.com https://drive.googleapis.com https://docs.googleapis.com https://www.googleapis.com;"
+    "extension_pages": "script-src 'self'; object-src 'self'; connect-src 'self' https://driveactivity.googleapis.com https://drive.googleapis.com https://docs.googleapis.com https://www.googleapis.com https://red-spire-data.onrender.com;"
   },
   "background": {
     "service_worker": "scripts/background.js"
