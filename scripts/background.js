@@ -214,7 +214,6 @@ class Authorizer {
   }
 
   async postData(target, body) {
-    
     if (body) {
       body = JSON.stringify(body);
       let content = { method: "POST", headers: { "Content-Type": "application/json" }, body };
@@ -241,7 +240,12 @@ class Authorizer {
         };
       } else {
         console.log('ok');
-        return response;
+        return {
+          status: response.status,
+          message: response.statusText,
+          body: data,
+        }
+        // return response;
       }
     } else {
       console.log('no data to post');

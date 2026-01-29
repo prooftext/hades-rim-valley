@@ -149,13 +149,3 @@ let loader = new AppLoader();
  * 12. Final review and polishing
  * 13. Data entry or transcription
  */
-
-//three randome words: banana, elephant, guitar
-//three more: computer, mountain, river
-//last three: sunshine, library, ocean
-//three short words: cat, dog, sun
-//three more short words: hat, pen, cup
-//final three short words: bed, car, map
-
-// we will use this github licence because we want people to read and contribute security fixes but not use the code outside of our company:
-// MIT License
