@@ -4,13 +4,21 @@ let testResponse;
 class AppLoader {
   authorizer;
   keylog;
+  STATES = {
+    RECORDING: false,
+    HUMAN_ESTIMATE: 0,
+    HUMAN_ESTIMATE_STR: "Alien",
+    DOC_ID: '',
+    SESSION_ID: '',
+    LAST_UPDATE: '',
+  };
 
   constructor() {
     this.authorizer = new Authorizer();
     this.keylog = new KeyLogger();
     console.log("AppLoader initialized");
 
-      chrome.runtime.onMessage.addListener(this.processRequest);
+    chrome.runtime.onMessage.addListener(this.processRequest);
   }
 
   processRequest = (request, sender, sendResponse) => {
@@ -19,8 +27,7 @@ class AppLoader {
         this.authorizer.getAuthData().then(data => sendResponse(data));
         return true; // Keeps the message channel open for async response
       case "postLastLog":
-        this.authorizer.postData("https://red-spire-data.onrender.com/api/v1/keystroke/collect", this.keylog.assembleExportFromLastLog())
-          .then(response => sendResponse(response));
+        this.authorizer.postLastLog().then(response => sendResponse(response));
         return true;
       case "postKeystroke":
         this.authorizer.postData("https://red-spire-data.onrender.com/api/v1/keystroke/verify", { document_text: "A" })
@@ -43,7 +50,15 @@ class AppLoader {
         } else {
           sendResponse("Google Doc not detected.");
           return;
-        }      
+        }
+      case "checkText":
+        this.authorizer.postData("https://red-spire-data.onrender.com/api/v1/keystroke/verify", { document_text: request.text})
+          .then(response => sendResponse(response));
+        return true;
+      case "fetchState":
+        console.log('fetch', this.STATES)
+        sendResponse({data: this.STATES});
+        return;
       default:
         return this.keylog.processMessage(request, sender, sendResponse);
     }
@@ -66,28 +81,54 @@ class Authorizer {
 
     chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
       console.log("Tab updated:", tab.url);
-      // Check if the URL is loaded and matches the Google Docs pattern
-      if (changeInfo.status === 'complete' && tab.url?.includes('docs.google.com')) {
-        const docId = tab.url.split('/d/')[1].split('/')[0];
-        console.log("Google Doc detected! ID:", docId);
-        appLoader.keylog.updateDoc(docId);
-      } else {
-        appLoader.keylog.updateUrl(tab.url);
+      if (changeInfo.status === 'complete') {
+        this.updateDocState(tab.url);
       }
     });
     
     chrome.tabs.onActivated.addListener(activeInfo => {
       chrome.tabs.get(activeInfo.tabId, tab => {
-        console.log("Tab activated:", tab.url);
-        if (tab.url?.includes('docs.google.com')) {
-          const docId = tab.url.split('/d/')[1].split('/')[0];
-          console.log("Google Doc detected! ID:", docId);
-          appLoader.keylog.updateDoc(docId);
-        } else {
-          appLoader.keylog.updateUrl(tab.url);
-        }
+        this.updateDocState(tab.url);
       });
     });
+  }
+  
+  updateDocState(url) {
+    if (url?.includes('docs.google.com')) {
+      const docId = url.split('/d/')[1].split('/')[0];
+      chrome.action.setBadgeText({ text: 'REC'});
+      console.log("Google Doc detected! ID:", docId);
+      appLoader.keylog.updateDoc(docId);
+      appLoader.STATES.RECORDING = true;
+      appLoader.STATES.DOC_ID = docId;
+    } else {
+      appLoader.keylog.updateUrl(url);
+      chrome.action.setBadgeText({ text: ''});
+      appLoader.STATES.RECORDING = false;
+      appLoader.STATES.DOC_ID = url;
+    }
+  }
+
+  async postLastLog() {
+    let data = appLoader.keylog.assembleExportFromLastLog();
+    if (appLoader.keylog.isdocs) {
+      let docResponse = await this.handleDocDetected(appLoader.keylog.docId);
+      data.document_text = docResponse.content;
+    }
+
+    let response = await this.postData("https://red-spire-data.onrender.com/api/v1/keystroke/collect", data);
+
+    // { "status": 200, "message": "", 
+    //   "body": { "session_id": "keylog_doc_1jgepNhKgqZsr9irHUU1hlJZt1D00ThJe3ZdnE-f_NuY_1", 
+    //   "human_probability": 0.49999999999999994, "verification_status": "no", "metrics": { "totalKeystrokes": 3, 
+    //   "avgDwellTimeMicros": 135, "stdDwellTimeMicros": 32.78210894171799, "avgFlightTimeMicros": 141500, 
+    //   "stdFlightTimeMicros": 17500, "wpm": 127.20848056537105, "pasteEvents": 0, "backspaceCount": 0, "deleteCount": 0, 
+    //   "formatChanges": 0, "pausesOver2Sec": 0, "longestPauseMicros": 159000, "pasteRatio": 0 } }
+    // }
+    appLoader.STATES.HUMAN_ESTIMATE = response.body.human_probability;
+    appLoader.STATES.HUMAN_ESTIMATE_STR = response.body.verification_status;
+    appLoader.STATES.LAST_UPDATE = data.client_time;
+    return response;
   }
 
   async getAuthData() {
@@ -322,6 +363,7 @@ class KeyLogger {
     chrome.storage.local.get(this.storageId).then(loadData => {
       if (loadData) {
         this.lastLog = loadData[this.storageId];
+        appLoader.STATES.SESSION_ID = this.getLastSession();
       }
       console.log("data loaded", this.lastLog);
     });
@@ -423,16 +465,16 @@ class KeyLogger {
       };
     }
 
-    kl.dwellTimeMicros = new Date(kl.releaseTime) - new Date(kl.pressTime);
+    kl.dwellTimeMicros = (new Date(kl.releaseTime) - new Date(kl.pressTime)) * 1000;
 
     let lastKl = log.log[log.log.length - 1];
     if (lastKl) {
-      kl.flightTimeMicros = new Date(kl.pressTime) - new Date(lastKl.releaseTime);
+      kl.flightTimeMicros = (new Date(kl.pressTime) - new Date(lastKl.releaseTime)) * 1000;
     } else {
       kl.flightTimeMicros = null;
     }
 
-    kl.session = lastKl ? kl.flightTimeMicros < 300000 ? lastKl.session : lastKl.session + 1 : 0; // New session if >5min gap
+    kl.session = lastKl ? kl.flightTimeMicros < 300*1000*1000 ? lastKl.session : lastKl.session + 1 : 0; // New session if >5min gap
     kl.timestamp = kl.pressTime;
     kl.sequence = log.log.length;
     console.log("Keystroke logged:", kl);
@@ -440,6 +482,7 @@ class KeyLogger {
     log.log.push(kl);
     this.lastLog = log;
     chrome.storage.local.set({ [this.storageId]: log });
+    appLoader.STATES.SESSION_ID = this.getLastSession();
   }
 
   calculateMetrics = (log, session) => {
@@ -466,14 +509,14 @@ class KeyLogger {
     let deleteCount = log.filter(kl => kl.eventType === 'keydeletion' && kl.key === 'Delete').length;
 
     let pausesOver2Sec = 0;
-    let longestPauseMs = 0;
+    let longestPauseMicros = 0;
     for (let i = 1; i < log.length; i++) {
       let pause = new Date(log[i].pressTime) - new Date(log[i - 1].releaseTime);
       if (pause > 2000) {
         pausesOver2Sec++;
       }
-      if (pause > longestPauseMs) {
-        longestPauseMs = pause;
+      if (pause > longestPauseMicros) {
+        longestPauseMicros = pause * 1000;
       }
     }
 
@@ -495,7 +538,7 @@ class KeyLogger {
       deleteCount,
       formatChanges,
       pausesOver2Sec,
-      longestPauseMs,
+      longestPauseMicros,
       pasteRatio
     };
 
@@ -534,9 +577,17 @@ class KeyLogger {
       document_text: 'unknown',
       events: sessionLog,
       metadata: metrics,
+      client_time: new Date().toUTCString(),
     };
 
     return m;
+  }
+
+  getLastSession = () => {
+    let log = this.lastLog.log;
+    let session = log[log.length - 1].session;
+
+    return session;
   }
 }
 

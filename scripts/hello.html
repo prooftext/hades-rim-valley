@@ -1,13 +1,22 @@
 <html>
-  <body>
+  <body style="width: 500px; height: 300px;">
     <h1>Proof Text</h1>
-    <button id="loginButton">Log In</button>
-    <button id="docButton">Get Docs content</button>
-    <button id="historyButton">Get Docs history</button>
-    <button id="printButton">Print Here</button>
-    <button id="copyButton">Copy to Clipboard</button>
-    <button id="sendButton">Send to Server</button>
-    <button id="testButton">Send Keystroke</button>
+    <div>State: <span id="RecordingState">INACTIVE</span></div>
+    <div>Estimate: <span id="EstimateState">0%</span></div>
+    <div><span id="EstimateStateString">Nobody</span></div>
+    <div><span id="LastUpdateTime">0:00</span></div>
+    <br><br>
+    <button id="debugButton">Debug</button>
+    <div id="debugControls" style="display: none;">
+      <div id="docId">0</div>
+      <button id="loginButton">Log In</button>
+      <button id="docButton">Get Docs content</button>
+      <button id="historyButton">Get Docs history</button>
+      <button id="printButton">Print Here</button>
+      <button id="copyButton">Copy to Clipboard</button>
+      <button id="sendButton">Send to Server</button>
+      <button id="testButton">Send Keystroke</button>
+    </div>
     <div id="content"></div>
 
     <script src="popup.js"></script>
