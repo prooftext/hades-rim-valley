@@ -22,7 +22,7 @@ class AppLoader {
   }
 
   processRequest = (request, sender, sendResponse) => {
-    switch(request.action) {
+    switch (request.action) {
       case "login":
         this.authorizer.getAuthData().then(data => sendResponse(data));
         return true; // Keeps the message channel open for async response
@@ -51,14 +51,6 @@ class AppLoader {
           sendResponse("Google Doc not detected.");
           return;
         }
-      case "checkText":
-        this.authorizer.postData("https://red-spire-data.onrender.com/api/v1/keystroke/verify", { document_text: request.text})
-          .then(response => sendResponse(response));
-        return true;
-      case "fetchState":
-        console.log('fetch', this.STATES)
-        sendResponse({data: this.STATES});
-        return;
       default:
         return this.keylog.processMessage(request, sender, sendResponse);
     }
@@ -68,9 +60,9 @@ class AppLoader {
 class Authorizer {
   clientId = '1049671897311-fgfbplse7k1cpjofh0hi66kqa4ass9qs.apps.googleusercontent.com';
   scopes = [
-        'https://www.googleapis.com/auth/documents.readonly',
-        'https://www.googleapis.com/auth/userinfo.profile'
-    ];
+    'https://www.googleapis.com/auth/documents.readonly',
+    'https://www.googleapis.com/auth/userinfo.profile'
+  ];
 
   constructor() {
     // 1. Listen for clicks on the extension icon to start auth
@@ -85,25 +77,25 @@ class Authorizer {
         this.updateDocState(tab.url);
       }
     });
-    
+
     chrome.tabs.onActivated.addListener(activeInfo => {
       chrome.tabs.get(activeInfo.tabId, tab => {
         this.updateDocState(tab.url);
       });
     });
   }
-  
+
   updateDocState(url) {
     if (url?.includes('docs.google.com')) {
       const docId = url.split('/d/')[1].split('/')[0];
-      chrome.action.setBadgeText({ text: 'REC'});
+      chrome.action.setBadgeText({ text: 'REC' });
       console.log("Google Doc detected! ID:", docId);
       appLoader.keylog.updateDoc(docId);
       appLoader.STATES.RECORDING = true;
       appLoader.STATES.DOC_ID = docId;
     } else {
       appLoader.keylog.updateUrl(url);
-      chrome.action.setBadgeText({ text: ''});
+      chrome.action.setBadgeText({ text: '' });
       appLoader.STATES.RECORDING = false;
       appLoader.STATES.DOC_ID = url;
     }
@@ -136,10 +128,10 @@ class Authorizer {
       // interactive: true will show the Google login popup to the user
       const result = await chrome.identity.getAuthToken({ interactive: true });
       console.log("Token acquired:", result.token);
-      
+
       // Call your Google Cloud API
       const data = await this.fetchCloudData(result.token, 'https://www.googleapis.com/oauth2/v1/userinfo?alt=json');
-      return {token: result.token, data};
+      return { token: result.token, data };
     } catch (error) {
       console.error("Auth Error:", error);
     }
@@ -161,13 +153,13 @@ class Authorizer {
     const token = await chrome.identity.getAuthToken({ interactive: false });
 
     console.log("token received", token);
-    
+
     const response = await fetch(`https://docs.googleapis.com/v1/documents/${docId}`, {
       headers: { 'Authorization': `Bearer ${token.token}` }
     });
 
     console.log("response received", response);
-    
+
     const docData = await response.json();
     console.log("Document Received:", response, docData);
 
@@ -202,7 +194,7 @@ class Authorizer {
           'Authorization': `Bearer ${tokenObj.token}`,
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({itemName: `items/${docId}`}),
+        body: JSON.stringify({ itemName: `items/${docId}` }),
       });
 
       const data = await response.json();
@@ -302,7 +294,7 @@ class KeyLogger {
   lastLog;
 
   pendingKeystrokes = [];
-  
+
   constructor() {
     console.log("KeyLogger initialized");
   }
@@ -315,21 +307,21 @@ class KeyLogger {
       case "keyup_detected":
         this.onKeyUp(request);
         break;
-        // You can now trigger your Google Docs API calls or other logic here
+      // You can now trigger your Google Docs API calls or other logic here
       case "pointerdown_detected":
         console.log(`Pointer down detected at ${request.timestamp} from ${request.sourceUrl}`);
         break;
-        // You can now trigger your Google Docs API calls or other logic here
+      // You can now trigger your Google Docs API calls or other logic here
       case "paste_detected":
         console.log(`User pasted: "${request.pastedText}" at ${request.timestamp} from ${request.sourceUrl}`);
         break;
-        // You can now trigger your Google Docs API calls or other logic here
+      // You can now trigger your Google Docs API calls or other logic here
       case "fetchLastLog":
         sendResponse({ token: "dummy-token", data: this.lastLog });
         break;
       case "calculateMetrics":
-      // console.log("Calculating metrics for log:", log);
-      // if (log) {
+        // console.log("Calculating metrics for log:", log);
+        // if (log) {
         let metrics = this.calculateSessionMetrics(this.lastLog.log);
         if (!metrics) metrics = this.calculateMetrics(this.lastLog.log);
         console.log("Calculated metrics:", metrics);
@@ -345,7 +337,7 @@ class KeyLogger {
   updateUrl(newUrl) {
     this.docId = "";
     this.isdocs = false;
-    this.storageId = 'keylog_' +newUrl;
+    this.storageId = 'keylog_' + newUrl;
 
     chrome.storage.local.get(this.storageId).then(loadData => {
       if (loadData) {
@@ -358,7 +350,7 @@ class KeyLogger {
   updateDoc(docId) {
     this.docId = docId;
     this.isdocs = true;
-    this.storageId = 'keylog_doc_' +docId;
+    this.storageId = 'keylog_doc_' + docId;
 
     chrome.storage.local.get(this.storageId).then(loadData => {
       if (loadData) {
@@ -371,7 +363,7 @@ class KeyLogger {
 
   onKeyDown = (event) => {
     let eventType = 'keypress';
-    switch(event.key) {
+    switch (event.key) {
       case "Backspace":
       case "Delete":
         eventType = 'keydeletion';
@@ -465,16 +457,19 @@ class KeyLogger {
       };
     }
 
+    // convert milliseconds (Date subtraction) -> microseconds
     kl.dwellTimeMicros = (new Date(kl.releaseTime) - new Date(kl.pressTime)) * 1000;
 
     let lastKl = log.log[log.log.length - 1];
     if (lastKl) {
+      // convert milliseconds -> microseconds
       kl.flightTimeMicros = (new Date(kl.pressTime) - new Date(lastKl.releaseTime)) * 1000;
     } else {
       kl.flightTimeMicros = null;
     }
 
-    kl.session = lastKl ? kl.flightTimeMicros < 300*1000*1000 ? lastKl.session : lastKl.session + 1 : 0; // New session if >5min gap
+    // New session if gap > 5 minutes (300000 ms -> 300000000 micros)
+    kl.session = lastKl ? kl.flightTimeMicros < 300000000 ? lastKl.session : lastKl.session + 1 : 0;
     kl.timestamp = kl.pressTime;
     kl.sequence = log.log.length;
     console.log("Keystroke logged:", kl);
@@ -511,12 +506,14 @@ class KeyLogger {
     let pausesOver2Sec = 0;
     let longestPauseMicros = 0;
     for (let i = 1; i < log.length; i++) {
-      let pause = new Date(log[i].pressTime) - new Date(log[i - 1].releaseTime);
-      if (pause > 2000) {
+      // pause in milliseconds -> convert to microseconds
+      let pauseMillis = new Date(log[i].pressTime) - new Date(log[i - 1].releaseTime);
+      let pause = pauseMillis * 1000;
+      if (pause > 2000000) { // 2 seconds in micros
         pausesOver2Sec++;
       }
       if (pause > longestPauseMicros) {
-        longestPauseMicros = pause * 1000;
+        longestPauseMicros = pause;
       }
     }
 
@@ -570,7 +567,7 @@ class KeyLogger {
     if (!sessionLog || sessionLog.length === 0) return null;
 
     let metrics = this.calculateMetrics(sessionLog);
-    
+
     let m = {
       user_id: 'TEST_USER',
       session_id: data.source + '_' + session,
