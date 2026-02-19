@@ -7,6 +7,7 @@
     "default_popup": "scripts/hello.html",
     "default_icon": "proof_text_extensions.png"
   },
+  "key": "gaiklgpmbbodgagmlfnahojjlgojcbdj",
   "permissions": ["activeTab", "scripting", "tabs", "clipboardRead", "identity", "storage"],
   "host_permissions": ["<all_urls>"],
   "content_security_policy": {

@@ -127,7 +127,7 @@ class Authorizer {
     // }
     appLoader.STATES.HUMAN_ESTIMATE = response.body.human_probability;
     appLoader.STATES.HUMAN_ESTIMATE_STR = response.body.verification_status;
-    appLoader.STATES.LAST_UPDATE = data.client_time;
+    // appLoader.STATES.LAST_UPDATE = data.client_time;
     return response;
   }
 
@@ -321,7 +321,7 @@ class KeyLogger {
         break;
         // You can now trigger your Google Docs API calls or other logic here
       case "paste_detected":
-        console.log(`User pasted: "${request.pastedText}" at ${request.timestamp} from ${request.sourceUrl}`);
+        this.onPaste(request);
         break;
         // You can now trigger your Google Docs API calls or other logic here
       case "fetchLastLog":
@@ -370,11 +370,12 @@ class KeyLogger {
   }
 
   onKeyDown = (event) => {
-    let eventType = 'keypress';
+    // if holding alt / ctrl / meta fire something different
+    let eventType = 'keydown';
     switch(event.key) {
       case "Backspace":
       case "Delete":
-        eventType = 'keydeletion';
+        eventType = 'delete';
         break;
       case "Shift":
       case "Control":
@@ -417,9 +418,21 @@ class KeyLogger {
         shiftKey: event.shiftKey,
         metaKey: event.metaKey,
       },
+      cursorPosition: 0,
+      pastedLength: 0,
+      deletedLength: 0,
+      formatAction: "string",
+      selectedRange: {},
+      // "cursorPosition": 0,
+      // "sequence": 0,
+      // "pastedLength": 0,
+      // "deletedLength": 0,
+      // "formatAction": "string",
+      // "selectedRange": {
+      //   "additionalProp1": {}
+      // },
     }
     this.pendingKeystrokes.push(pending);
-
     //       "timestamp": "2026-01-19T17:45:48.292Z", // for non-key events
     //       "sequence": 0, // for other event types
     //       "cursorPosition": 0, // can't get
@@ -442,28 +455,45 @@ class KeyLogger {
     this.logKeystroke(pending);
   }
 
-  logKeystroke = async (kl) => {
-    let log;
-    let loadData = await chrome.storage.local.get(this.storageId);
-    console.log(this.storageId, loadData)
-    if (loadData) {
-      log = loadData[this.storageId];
-      if (!log || !log.log || log.version !== VERSION) {
-        log = {
-          version: VERSION,
-          log: [],
-          isdocs: this.isdocs,
-          source: this.storageId,
-        };
-      }
-    } else {
-      log = {
-        version: VERSION,
-        log: [],
-        isdocs: this.isdocs,
-        source: this.storageId,
-      };
+  onPaste = async (request) => {
+    let log = await this.getLog();
+
+    console.log(`User pasted: "${request.pastedText}" at ${request.timestamp} from ${request.sourceUrl}`);
+    let kl = {
+      eventType: 'paste',
+      // key: event.key,
+      // keyCode: event.keyCode,
+      timestamp: new Date().toISOString(),
+      // modifiers: {
+      //   altKey: event.altKey,
+      //   ctrlKey: event.ctrlKey,
+      //   shiftKey: event.shiftKey,
+      //   metaKey: event.metaKey,
+      // },
+      cursorPosition: 0,
+      pastedText: request.pastedText,
+      pastedLength: request.pastedText.length(),
+      deletedLength: 0,
+      formatAction: "string",
+      selectedRange: {},
+      session: lastKl? lastKl.session : 0,
+      "sequence": log.log.length,
+      // "cursorPosition": 0,
+      // "deletedLength": 0,
+      // "formatAction": "string",
+      // "selectedRange": {
+      //   "additionalProp1": {}
+      // },
     }
+
+    kl.session = lastKl? lastKl.session : 0;
+    log.log.push(kl);
+    chrome.storage.local.set({ [this.storageId]: log });
+    appLoader.STATES.SESSION_ID = this.getLastSession();
+  }
+
+  logKeystroke = async (kl) => {
+    let log = await this.getLog();
 
     kl.dwellTimeMicros = (new Date(kl.releaseTime) - new Date(kl.pressTime)) * 1000;
 
@@ -561,6 +591,33 @@ class KeyLogger {
     return metrics;
   }
 
+  getLog = async() => {
+    let log;
+    let loadData = await chrome.storage.local.get(this.storageId);
+
+    if (loadData) {
+      log = loadData[this.storageId];
+      if (!log || !log.log || log.version !== VERSION) {
+        log = {
+          version: VERSION,
+          log: [],
+          isdocs: this.isdocs,
+          source: this.storageId,
+        };
+      }
+    } else {
+      log = {
+        version: VERSION,
+        log: [],
+        isdocs: this.isdocs,
+        source: this.storageId,
+      };
+    }
+
+    return log;
+  }
+
+
   assembleExportFromLastLog = () => {
     let data = this.lastLog;
     if (!data || !data.log) return null;
@@ -577,7 +634,7 @@ class KeyLogger {
       document_text: 'unknown',
       events: sessionLog,
       metadata: metrics,
-      client_time: new Date().toUTCString(),
+      // client_time: new Date().toUTCString(),
     };
 
     return m;

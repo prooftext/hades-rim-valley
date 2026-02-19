@@ -21,43 +21,50 @@ class EventLogger {
         window.addEventListener("keydown", this.logKeyDown, {capture: true});
         window.addEventListener("keyup", this.logKeyUp, {capture: true});
         window.addEventListener("pointerdown", this.logPointerDown);
-        window.addEventListener("paste", this.pasteHandler);
+        window.addEventListener("paste", this.pasteHandler, {capture: true});
 
-        let frames = document.getElementsByTagName("iframe");
-        frames = Array.from(frames);
-        frames.forEach((frame) => {
-            try {
-                const frameDoc = frame.contentDocument || frame.contentWindow?.document;
-                if (frameDoc) {
-                    console.log("Adding paste listener to iframe document");
-                    frameDoc.addEventListener("paste", this.pasteHandler);
-                } 
-            } catch (e) {}
-        });
+        // let frames = document.getElementsByTagName("iframe");
+        // frames = Array.from(frames);
+        // frames.forEach((frame) => {
+        //     try {
+        //         const frameDoc = frame.contentDocument || frame.contentWindow?.document;
+        //         if (frameDoc) {
+        //             console.log("Adding paste listener to iframe document");
+        //             frameDoc.addEventListener("paste", this.pasteHandler);
+        //         } 
+        //     } catch (e) {}
+        // });
     }
 
     
     logKeyDown = (event) => {
-        chrome.runtime.sendMessage({
-            action: "keydown_detected",
-            key: event.key,
-            keyCode: event.keyCode,
-            altKey: event.altKey,
-            ctrlKey: event.ctrlKey,
-            shiftKey: event.shiftKey,
-            metaKey: event.metaKey,
-            sourceUrl: this.url,
-            timestamp: new Date().toISOString(),
-        });
+        try{
+            chrome.runtime.sendMessage({
+                action: "keydown_detected",
+                key: event.key,
+                keyCode: event.keyCode,
+                altKey: event.altKey,
+                ctrlKey: event.ctrlKey,
+                shiftKey: event.shiftKey,
+                metaKey: event.metaKey,
+                sourceUrl: this.url,
+                timestamp: new Date().toISOString(),
+            });
+
+        }catch(e){}
     }
 
     logKeyUp = (event) => {
-        chrome.runtime.sendMessage({
-            action: "keyup_detected",
-            key: event.key,
-            sourceUrl: this.url,
-            timestamp: new Date().toISOString(),
-        });
+        try{
+
+            chrome.runtime.sendMessage({
+                action: "keyup_detected",
+                key: event.key,
+                sourceUrl: this.url,
+                timestamp: new Date().toISOString(),
+            });
+        }catch(e){}
+
     }
 
     logPointerDown = (event) => {
@@ -69,7 +76,6 @@ class EventLogger {
     }
 
     pasteHandler = (event) => {
-        console.log("Paste event detected");
         const pastedText = (event.clipboardData || window.clipboardData).getData('text');
         chrome.runtime.sendMessage({
             action: "paste_detected",
