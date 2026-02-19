@@ -18,8 +18,8 @@ class AppLoader {
 
 class EventLogger {
     constructor() {
-        window.addEventListener("keydown", this.logKeyDown, {capture: true});
-        window.addEventListener("keyup", this.logKeyUp, {capture: true});
+        window.addEventListener("keydown", this.logKeyDown, { capture: true });
+        window.addEventListener("keyup", this.logKeyUp, { capture: true });
         window.addEventListener("pointerdown", this.logPointerDown);
         window.addEventListener("paste", this.pasteHandler, {capture: true});
 
@@ -36,7 +36,7 @@ class EventLogger {
         // });
     }
 
-    
+
     logKeyDown = (event) => {
         try{
             chrome.runtime.sendMessage({
@@ -126,15 +126,15 @@ let loader = new AppLoader();
   "totalKeystrokes": 245,
   "avgDwellTimeMicros": 71500,
   "avgFlightTimeMicros": 52300,
-  "wpm": 45, // how many 
+  "wpm": 45, // how many
   "pasteEvents": 2,
   "copyEvents": 1,
   "backspaceCount": 12,
   "deleteCount": 3,
   "formatChanges": 5,
   "navigationKeys": 8,
-  "pausesOver2Sec": 3,
-  "longestPauseMs": 5430,
+    "pausesOver2Sec": 3,
+    "longestPauseMicros": 5430000,
   "aiLikelihoodScore": 0.15
 }
  */
