@@ -1,13 +1,13 @@
 {
   "manifest_version": 3,
-  "name": "Hello Extensions",
+  "name": "Proof Text Verification Extension",
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAv8KQircCG7N+M+CPObYzQUYgursdUIRUJGZeoA0Nmd2HLBVaHZ4OVQE1iRRgc/TnGEKCmCuYQ9stWTiGkwBqwA8oFllbREZmBJw40eWE7S0oPcZ4fbdYW/4aRu5MSVGrIdyKrdmjeVzmABPZ97atL/CcolARcalM0AX+Sn4XAjrljjlRaXY1obskIz0f1dzJono6I6JYJeImIF1HPpNIldaHngtVcGoIKYFLZTvvZP3VTRxpe1mWY/y2LtymsZIQ54lVXJZdi3KLoNx5G7u1v/7uXK319F6Hf7Cs1/HMYqmI84pWOLj/dH+NbqrLv5HHjkYyVpuYWD6M1sqx9BkmkwIDAQAB",
   "description": "Base Level Extension",
   "version": "1.0",
   "action": {
     "default_popup": "scripts/hello.html",
     "default_icon": "proof_text_extensions.png"
   },
-  "key": "gaiklgpmbbodgagmlfnahojjlgojcbdj",
   "permissions": ["activeTab", "scripting", "tabs", "clipboardRead", "identity", "storage"],
   "host_permissions": ["<all_urls>"],
   "content_security_policy": {
@@ -26,7 +26,7 @@
     }
   ],
   "oauth2": {
-    "client_id": "1049671897311-fgfbplse7k1cpjofh0hi66kqa4ass9qs.apps.googleusercontent.com",
+    "client_id": "687600790666-u3q0fppri006epc3r0sgroir2mvktrid.apps.googleusercontent.com",
     "scopes": [
       "https://www.googleapis.com/auth/userinfo.email",
       "https://www.googleapis.com/auth/documents.readonly",

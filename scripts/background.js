@@ -58,12 +58,6 @@ class AppLoader {
 }
 
 class Authorizer {
-  clientId = '1049671897311-fgfbplse7k1cpjofh0hi66kqa4ass9qs.apps.googleusercontent.com';
-  scopes = [
-    'https://www.googleapis.com/auth/documents.readonly',
-    'https://www.googleapis.com/auth/userinfo.profile'
-  ];
-
   constructor() {
     // 1. Listen for clicks on the extension icon to start auth
     chrome.action.onClicked.addListener(() => {
